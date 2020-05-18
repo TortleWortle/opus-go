@@ -1,7 +1,6 @@
 package opus
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
@@ -18,7 +17,6 @@ const DEFAULT_BUFFER_FOR_PLAYBACK_MS = 2500
 // OpusReader is used to take an OGG file and write RTP packets
 type OpusReader struct {
 	stream                  io.Reader
-	fd                      *os.File
 	SampleRate              uint32
 	Channels                uint8
 	serial                  uint32
@@ -49,22 +47,25 @@ func NewFile(fileName string) (*OpusReader, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	return NewWith(f)
+}
+
+func NewWith(in io.Reader) (*OpusReader, error) {
 	reader := &OpusReader{}
-	//  reader, err := NewWith(f, sampleRate, channelCount)
-	//if err != nil {
-	//        return nil, err
-	//}
-	reader.fd = f
 	reader.segmentMap = make(map[uint8]uint8)
-	reader.stream = bufio.NewReader(f)
+	reader.stream = in
+
+	err := reader.getPage()
+	if err != nil {
+		return reader, err
+	}
+
 	err = reader.getPage()
 	if err != nil {
 		return reader, err
 	}
-	err = reader.getPage()
-	if err != nil {
-		return reader, err
-	}
+
 	return reader, nil
 }
 
